@@ -301,8 +301,133 @@ codex exec --full-auto "重构 auth 模块:
 - 保持公共 API 稳定"
 ```
 
+## Spec-Kit 工作流 (规范驱动开发)
+
+Spec-Kit 是 GitHub 的规范驱动开发工具包，让 Codex 按结构化流程开发，而非 vibe coding。
+
+### 安装 Spec-Kit
+
+```bash
+uv tool install specify-cli --from git+https://github.com/github/spec-kit.git
+```
+
+### 初始化项目
+
+```bash
+# 新项目
+specify init my-project --ai codex
+
+# 现有项目
+cd existing-project
+specify init . --ai codex --force
+```
+
+初始化后会创建:
+- `.codex/prompts/` - Slash 命令定义
+- `.specify/` - 规范、模板、脚本
+
+### Spec-Kit Slash 命令
+
+在 Codex 交互模式中使用:
+
+| 命令 | 说明 |
+|------|------|
+| `/speckit.constitution` | 建立项目原则和开发规范 |
+| `/speckit.specify` | 定义要构建什么 (需求和用户故事) |
+| `/speckit.clarify` | 澄清模糊需求 (可选，在 plan 前) |
+| `/speckit.plan` | 创建技术实现计划 (指定技术栈) |
+| `/speckit.tasks` | 生成可执行的任务列表 |
+| `/speckit.analyze` | 交叉检查一致性 (可选，在 implement 前) |
+| `/speckit.implement` | 执行所有任务，构建功能 |
+
+### 完整工作流示例
+
+```bash
+# 1. 初始化项目
+specify init photo-app --ai codex
+cd photo-app
+
+# 2. 启动 Codex (设置 CODEX_HOME)
+export CODEX_HOME=$(pwd)/.codex
+codex
+
+# 3. 在 Codex 中依次执行:
+
+# 建立项目原则
+/speckit.constitution Create principles focused on code quality, testing, UX consistency, and performance.
+
+# 定义需求 (关注 what 和 why，不关注技术栈)
+/speckit.specify Build a photo album app. Users can organize photos into albums grouped by date. Albums can be reordered via drag-and-drop. Photos display in a tile grid within each album.
+
+# 澄清需求 (可选)
+/speckit.clarify
+
+# 创建技术计划 (指定技术栈)
+/speckit.plan Use Vite + React + TypeScript. Store metadata in local SQLite. No image upload, local files only.
+
+# 生成任务列表
+/speckit.tasks
+
+# 检查一致性 (可选)
+/speckit.analyze
+
+# 执行实现
+/speckit.implement
+```
+
+### 目录结构
+
+初始化后的项目结构:
+
+```
+project/
+├── .codex/
+│   └── prompts/           # Slash 命令定义
+│       ├── speckit.constitution.md
+│       ├── speckit.specify.md
+│       ├── speckit.plan.md
+│       ├── speckit.tasks.md
+│       └── speckit.implement.md
+├── .specify/
+│   ├── memory/
+│   │   └── constitution.md  # 项目原则
+│   ├── scripts/             # 辅助脚本
+│   ├── specs/               # 功能规范
+│   │   └── 001-feature/
+│   │       ├── spec.md      # 需求规范
+│   │       ├── plan.md      # 实现计划
+│   │       └── tasks.md     # 任务列表
+│   └── templates/           # 模板文件
+└── ...
+```
+
+### 在 OpenClaw 中使用 Spec-Kit
+
+```bash
+# 后台运行完整工作流
+bash pty:true workdir:~/my-project background:true command:"
+export CODEX_HOME=\$(pwd)/.codex
+codex exec --full-auto '
+/speckit.constitution Create principles for a production-ready web app.
+/speckit.specify Build a task management app with Kanban boards.
+/speckit.plan Use Next.js 14, Prisma, PostgreSQL.
+/speckit.tasks
+/speckit.implement
+
+When finished, run: openclaw gateway wake --text \"Done: Spec-Kit workflow complete\" --mode now
+'"
+```
+
+### 注意事项
+
+1. **CODEX_HOME**: 必须设置为项目的 `.codex` 目录，否则 slash 命令不可用
+2. **英文 Prompt**: 和 Codex 交互时使用英文
+3. **先 specify 后 plan**: 需求定义不要涉及技术栈，技术栈在 plan 阶段指定
+4. **迭代优化**: 每个阶段都可以和 Codex 对话优化，不要把第一次输出当最终版
+
 ## 参考链接
 
 - 官方文档: https://developers.openai.com/codex/
 - GitHub: https://github.com/openai/codex
 - SDK: https://github.com/openai/codex/tree/main/sdk/typescript
+- Spec-Kit: https://github.com/github/spec-kit
