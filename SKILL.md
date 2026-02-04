@@ -523,9 +523,136 @@ When finished, run: openclaw gateway wake --text \"Done: Spec-Kit workflow compl
 3. **先 specify 后 plan**: 需求定义不要涉及技术栈，技术栈在 plan 阶段指定
 4. **迭代优化**: 每个阶段都可以和 Codex 对话优化，不要把第一次输出当最终版
 
+## OpenSpec 工作流 (推荐)
+
+OpenSpec 是比 Spec-Kit 更轻量、更灵活的规范驱动开发框架。支持 20+ AI 编程工具，包括 Codex。
+
+### 为什么选 OpenSpec 而非 Spec-Kit
+
+| 特性 | OpenSpec | Spec-Kit |
+|------|----------|----------|
+| 安装 | npm 一键安装 | Python + uv |
+| 工作流 | 灵活迭代，随时更新 | 严格阶段门控 |
+| 配置 | 自动检测工具 | 手动配置 |
+| 维护 | 活跃更新 | GitHub 官方但较重 |
+
+### 安装 OpenSpec
+
+```bash
+npm install -g @fission-ai/openspec@latest
+```
+
+### 初始化项目
+
+```bash
+cd your-project
+openspec init --tools codex
+```
+
+这会创建：
+- `.codex/skills/` - Codex 技能文件
+- `~/.codex/prompts/` - 全局 slash 命令
+- `openspec/` - 规范和变更目录
+
+### OpenSpec Slash 命令
+
+| 命令 | 说明 |
+|------|------|
+| `/opsx:new` | 创建新的变更 |
+| `/opsx:explore` | 探索想法，调研问题 |
+| `/opsx:continue` | 创建下一个 artifact |
+| `/opsx:ff` | 快速生成所有规划文档 |
+| `/opsx:apply` | 执行任务，实现代码 |
+| `/opsx:verify` | 验证实现是否符合规范 |
+| `/opsx:archive` | 归档完成的变更 |
+
+### 完整工作流示例
+
+```bash
+# 1. 初始化项目
+cd my-project
+git init
+openspec init --tools codex
+
+# 2. 创建新变更
+codex exec --full-auto "/opsx:new add-user-auth"
+
+# 3. 快速生成所有规划文档 (proposal → design → specs → tasks)
+codex exec --full-auto "/opsx:ff add-user-auth
+
+实现用户认证功能：
+- JWT token 认证
+- 登录/注册 API
+- 密码加密存储"
+
+# 4. 执行实现
+codex exec --full-auto "/opsx:apply add-user-auth"
+
+# 5. 验证并归档
+codex exec --full-auto "/opsx:verify add-user-auth"
+codex exec --full-auto "/opsx:archive add-user-auth"
+```
+
+### 生成的目录结构
+
+```
+project/
+├── .codex/
+│   └── skills/                    # Codex 技能文件
+│       ├── openspec-new-change/
+│       ├── openspec-ff-change/
+│       ├── openspec-apply-change/
+│       └── ...
+├── openspec/
+│   ├── changes/                   # 进行中的变更
+│   │   └── add-user-auth/
+│   │       ├── .openspec.yaml     # 变更元数据
+│   │       ├── proposal.md        # 为什么做
+│   │       ├── design.md          # 怎么做
+│   │       ├── specs/             # 需求规范
+│   │       │   └── user-auth/
+│   │       │       └── spec.md
+│   │       └── tasks.md           # 任务清单
+│   ├── specs/                     # 主规范 (归档后合并)
+│   └── config.yaml                # 项目配置
+└── ...
+```
+
+### 在 OpenClaw 中使用 OpenSpec
+
+```bash
+# 后台运行完整工作流
+cd ~/my-project && codex exec --full-auto "
+/opsx:new add-dark-mode
+
+/opsx:ff add-dark-mode
+实现暗色模式：
+- 主题切换按钮
+- localStorage 持久化
+- 跟随系统偏好
+
+/opsx:apply add-dark-mode
+
+完成后运行: openclaw gateway wake --text 'Done: 暗色模式实现完成' --mode now
+"
+```
+
+### OpenSpec vs Spec-Kit 选择建议
+
+- **选 OpenSpec**: 快速迭代、灵活工作流、不想装 Python
+- **选 Spec-Kit**: 需要严格阶段控制、已有 Python 环境、偏好 GitHub 官方工具
+
+### 注意事项
+
+1. **不需要 CODEX_HOME**: OpenSpec 的 prompts 安装到全局 `~/.codex/prompts/`，不需要设置环境变量
+2. **先 init 后使用**: 每个项目需要运行 `openspec init --tools codex`
+3. **中文描述**: OpenSpec 支持中文描述需求，Codex 会正确理解
+4. **灵活迭代**: 可以随时更新 proposal/design/specs，不像 Spec-Kit 有严格阶段门控
+
 ## 参考链接
 
 - 官方文档: https://developers.openai.com/codex/
 - GitHub: https://github.com/openai/codex
 - SDK: https://github.com/openai/codex/tree/main/sdk/typescript
 - Spec-Kit: https://github.com/github/spec-kit
+- OpenSpec: https://github.com/Fission-AI/OpenSpec
