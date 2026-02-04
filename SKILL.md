@@ -320,6 +320,31 @@ macOS launchd 配置：
 </dict>
 </plist>
 ```
+
+### npm install 超时问题
+
+**问题：** Codex exec 运行 `npm install` 时可能超时（默认 10 秒 yieldMs）
+
+**解决方案：**
+1. 在调用 Codex 前手动安装依赖：`npm install package-name`
+2. 或者增加 exec 的 yieldMs 超时时间
+3. 或者在 Codex 任务描述中说明"假设依赖已安装"
+
+### 多文件修改的最佳实践
+
+**经验：** Codex 擅长一次性修改多个相关文件，但要在 prompt 中明确说明：
+- 需要修改哪些文件
+- 每个文件的具体改动
+- 改动之间的依赖关系
+
+**示例：**
+```bash
+codex exec --full-auto "实现照片点击放大功能：
+1. 在 record-detail.tsx 添加 ImageViewing 组件
+2. 用 TouchableOpacity 包裹每张照片
+3. 添加 imageViewerVisible 和 imageIndex 状态
+4. 同时修改 worker 和 admin 两个版本的 record-detail.tsx"
+```
 5. **vanilla 审查**: 代码审查不需要特殊参数
 6. **并行安全**: 可同时运行多个 Codex 进程
 7. **进度更新**: 后台任务要定期汇报进度
