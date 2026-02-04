@@ -247,6 +247,79 @@ bash pty:true workdir:~/project background:true command:"codex --yolo exec '构�
 2. **Git 仓库**: Codex 只在 git 目录中运行，临时任务用 `mktemp -d && git init`
 3. **workdir 隔离**: 指定工作目录，避免 agent 读取无关文件
 4. **--full-auto 构建**: 自动批准工作区内的更改
+
+## ⚠️ 常见问题与解决方案
+
+### 401 Unauthorized 错误
+
+**原因：**
+- ChatGPT 登录的 token 有效期约 1 小时
+- refresh token 只能用一次，多个 session 会冲突
+- 用 Google 登录更容易遇到这个问题（已知 bug）
+
+**解决方案：**
+1. 每次使用前检查登录状态：`codex login status`
+2. 如果失效，重新登录：`codex auth login`
+3. 设置自动刷新脚本（每 30 分钟运行 `codex login status`）
+4. 或者使用 API Key（不会过期）：`export OPENAI_API_KEY="sk-xxx"`
+
+### CODEX_HOME 环境变量陷阱
+
+**问题：** 设置 `CODEX_HOME=$(pwd)/.codex` 会导致 Codex 读取项目目录的 auth.json，而不是 `~/.codex/auth.json`，造成 401 错误。
+
+**正确用法：**
+```bash
+# ❌ 错误 - 会导致 401（除非项目 .codex 里也有 auth.json）
+export CODEX_HOME=$(pwd)/.codex && codex exec ...
+
+# ✅ 正确 - 使用默认 ~/.codex/ 目录
+cd /path/to/project && codex exec --full-auto "任务描述"
+```
+
+**何时需要 CODEX_HOME：**
+- 只有使用 Spec-Kit 的 slash 命令（/speckit.xxx）时才需要
+- 此时要确保 auth.json 也复制到项目的 .codex 目录
+
+### Token 自动刷新脚本
+
+```bash
+#!/bin/bash
+# 保存为 codex-token-refresh.sh，每 30 分钟运行
+
+export PATH="/opt/homebrew/bin:$PATH"
+LOG_FILE="$HOME/.codex/token-refresh.log"
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] 检查 Codex 登录状态..." >> "$LOG_FILE"
+
+STATUS=$(codex login status 2>&1)
+
+if echo "$STATUS" | grep -q "Logged in"; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ✅ Token 有效" >> "$LOG_FILE"
+else
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ❌ Token 失效，需要重新登录" >> "$LOG_FILE"
+fi
+```
+
+macOS launchd 配置：
+```xml
+<!-- ~/Library/LaunchAgents/com.codex.token-refresh.plist -->
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.codex.token-refresh</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/path/to/codex-token-refresh.sh</string>
+    </array>
+    <key>StartInterval</key>
+    <integer>1800</integer>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+```
 5. **vanilla 审查**: 代码审查不需要特殊参数
 6. **并行安全**: 可同时运行多个 Codex 进程
 7. **进度更新**: 后台任务要定期汇报进度
